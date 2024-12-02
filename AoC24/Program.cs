@@ -1,4 +1,4 @@
-﻿var part = new AoC24.Day1.Part2("Day1\\input.txt");
+﻿var part = new AoC24.Day2.Part2("Day2\\input.txt");
 part.Run();
 
 Console.ReadKey();

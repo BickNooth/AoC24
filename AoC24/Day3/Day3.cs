@@ -6,6 +6,7 @@ public class Day3
 {
     private const string InputFilePath = "Day3\\input.txt";
     private const string DoOrDontPattern = @"(do\(\))|(don't\(\))";
+    private const string DoOrDontPatternAlt = @"(do(?:n't)?\(\))";
     private const string MultiplesPattern = @"mul\((\d{1,3}),(\d{1,3})\)";
 
     public void Part1()

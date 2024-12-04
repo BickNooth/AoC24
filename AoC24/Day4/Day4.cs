@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AoC24.Day4;
+﻿namespace AoC24.Day4;
 
 public class Day4
 {
@@ -16,21 +14,10 @@ public class Day4
     {
         ParseFile("Day4\\"+FileName);
 
-        for (var i = 0; i < _rows; i++)
-        {
-            for (var j = 0; j < _cols; j++)
-            {
-                // foreach character in wordsearch
-                try
-                {
-                    CheckForXMAS(i, j);
-                }
-                catch (Exception e)
-                {
-                    // ignored
-                }
-            }
-        }
+        Enumerable.Range(0, _rows)
+                  .SelectMany(_ => Enumerable.Range(0, _cols), (i, j) => new { i, j })
+                  .ToList()
+                  .ForEach(pos => CheckForXMAS(pos.i, pos.j));
 
         Console.WriteLine(_wordsFound);
     }
@@ -39,117 +26,88 @@ public class Day4
     {
         ParseFile("Day4\\" + FileName);
 
-        for (var i = 0; i < _rows; i++)
-        {
-            for (var j = 0; j < _cols; j++)
-            {
-                // foreach character in wordsearch
-                try
-                {
-                    CheckForCrossMAS(i, j);
-                }
-                catch (Exception e)
-                {
-                    // ignored
-                }
-            }
-        }
+        Enumerable.Range(0, _rows)
+                  .SelectMany(_ => Enumerable.Range(0, _cols), (i, j) => new { i, j })
+                  .ToList()
+                  .ForEach(pos => CheckForCrossMAS(pos.i, pos.j));
 
         Console.WriteLine(_wordsFound);
     }
 
-
-    public void CheckForXMAS(int row, int col)
+    private void CheckForXMAS(int row, int col)
     {
-        // Possible directions of traversal
-        var directions = new[]
+        if (!IsInBounds(row, col))
+        {
+            return;
+        }
+
+        var directions = new (int row, int col)[]
                          {
                              (-1, -1), (-1, 0), (-1, 1),
                              (0, -1),          (0, 1),
                              (1, -1), (1, 0), (1, 1)
                          };
 
-        foreach (var (dr, dc) in directions)
-        {
-            // Foreach direction, check if XMAS is present
-            if (IsXMAS(row, col, dr, dc))
-            {
-                _wordsFound++;
-            }
-        }
+        _wordsFound += 
+            directions
+                .Count(direction => 
+                    IsXMAS(row, col, direction.row, direction.col));
     }
 
     private bool IsXMAS(int row, int col, int dr, int dc)
     {
         var word = "XMAS";
-        // Start by checking itself so i = 0
-        for (var i = 0; i < 4; i++)
+        return Enumerable.Range(0, word.Length).All(i =>
         {
             var newRow = row + i * dr;
             var newCol = col + i * dc;
-            if (newRow < 0 || newRow >= _rows || newCol < 0 || newCol >= _cols || _wordsearch[newRow, newCol] != word[i])
-            {
-                // If out of bounds or character doesn't match, return false
-                return false;
-            }
-        }
-        // If not out of bounds and hasn't returned false, must be XMAS
-        return true;
+            return newRow >= 0 && newRow < _rows && newCol >= 0 && newCol < _cols 
+                   && _wordsearch[newRow, newCol] == word[i];
+        });
     }
 
-    public void CheckForCrossMAS(int row, int col)
+    private void CheckForCrossMAS(int row, int col)
     {
-        if (_wordsearch[row, col] != 'A')
+        if (_wordsearch[row, col] != 'A' || !IsInBounds(row, col))
         {
             return;
         }
-        // Possible directions of traversal limited to X
-        var directions = new (int row, int col)[]
-                         {
-                             (row-1, col-1),    (row-1, col+1),
-                                        //Middle A
-                             (row+1, col-1),    (row+1, col+1)
-                         };
-        var crosswaysMatch = 0;
-        if ((_wordsearch[directions[0].row, directions[0].col] == 'S'
-            && _wordsearch[directions[3].row, directions[3].col] == 'M')
-            || _wordsearch[directions[0].row, directions[0].col] == 'M'
-            && _wordsearch[directions[3].row, directions[3].col] == 'S')
-        {
-            // Check Leftways
-            crosswaysMatch++;
-        }
 
-        if ((_wordsearch[directions[1].row, directions[1].col] == 'S'
-             && _wordsearch[directions[2].row, directions[2].col] == 'M')
-            || _wordsearch[directions[1].row, directions[1].col] == 'M'
-            && _wordsearch[directions[2].row, directions[2].col] == 'S')
-        {
-            // Check Rightways
-            crosswaysMatch++;
-        }
+        var pairs = new[]
+                    {
+                        ((row-1, col-1), (row+1, col+1)),
+                        ((row-1, col+1), (row+1, col-1))
+                    };
+
+        var crosswaysMatch =
+            pairs.Count(pair =>
+                            (_wordsearch[pair.Item1.Item1, pair.Item1.Item2] == 'S'
+                             && _wordsearch[pair.Item2.Item1, pair.Item2.Item2] == 'M') ||
+                            (_wordsearch[pair.Item1.Item1, pair.Item1.Item2] == 'M'
+                             && _wordsearch[pair.Item2.Item1, pair.Item2.Item2] == 'S')
+                       );
 
         if (crosswaysMatch == 2)
-        {
             _wordsFound++;
-        }
     }
 
+    private bool IsInBounds(int row, int col)
+    {
+        return row > 0 && row < _rows - 1
+            && col > 0 && col < _cols - 1;
+    }
 
-    public void ParseFile(string fileName)
+    private void ParseFile(string fileName)
     {
         var lines = File.ReadAllLines(fileName);
         _rows = lines.Length;
         _cols = lines[0].Length;
         _wordsearch = new char[_rows, _cols];
 
-        for (var i = 0; i < _rows; i++)
-        {
-            for (var j = 0; j < _cols; j++)
-            {
-                // Map to grid array
-                _wordsearch[i, j] = lines[i][j];
-            }
-        }
+        Enumerable.Range(0, _rows).ToList()
+                  .ForEach(i =>
+                    Enumerable.Range(0, _cols).ToList()
+                     .ForEach(j =>
+                        _wordsearch[i, j] = lines[i][j]));
     }
 }

@@ -14,8 +14,11 @@ public class Day6
         ('<', (0, -1))
     ];
 
-    //private const string FileName = "example.txt";
-    private const string FileName = "input.txt";
+    private const string FileName = "example.txt";
+    //private const string FileName = "input.txt";
+
+    private List<(char cursor, (int row, int col))> _movesMade = new();
+    private HashSet<(int, int)> _temporalyInsertedObjects = new();
 
     public void Part1()
     {
@@ -50,6 +53,30 @@ public class Day6
             }
         }
         Console.WriteLine($"Number of 'X' in the map: {count+1}");
+    }
+
+    public void Part2()
+    {
+        ParseFile("Day6\\" + FileName);
+
+        for (var i = 0; i < _rows; i++)
+        {
+            for (var j = 0; j < _cols; j++)
+            {
+                foreach (var direction in _movements)
+                {
+                    if (_map[i, j] == direction.cursor)
+                    {
+                        MoveGuardWithLogging(i, j, direction);
+                        break;
+                    }
+                }
+            }
+        }
+
+        Console.WriteLine("final:");
+        PrintMap();
+        Console.WriteLine($"Temporaly insertable objects: {_temporalyInsertedObjects.Count}");
     }
 
     private void MoveGuard(int currentRow, int currentCol, (char cursor, (int row, int col) direction) movement)
@@ -91,6 +118,61 @@ public class Day6
         }
     }
 
+    private void MoveGuardWithLogging(int currentRow, int currentCol, (char cursor, (int row, int col) direction) movement)
+    {
+        Console.WriteLine("____________________");
+        PrintMap();
+        _movesMade.Add((movement.cursor, (currentRow, currentCol)));
+        var nextRow = currentRow + movement.direction.row;
+        var nextCol = currentCol + movement.direction.col;
+        if (nextRow >= _rows || nextRow < 0 || nextCol >= _cols || nextCol < 0)
+        {
+            return;
+        }
+
+        var currentChar = movement.cursor;
+        var nextLocationChar = _map[nextRow, nextCol];
+        if (nextLocationChar == 'X')
+        {
+            // if visited before, check if direction is achievable from a turn
+
+            var nextNextRow = nextRow + movement.direction.row;
+            var nextNextCol = nextCol + movement.direction.col;
+            var turnedCharacter = Turn90(currentChar);
+            if (_movesMade.Contains((turnedCharacter, (nextRow, nextCol))))
+            {
+                _temporalyInsertedObjects.Add((nextNextRow, nextNextCol));
+            }
+
+        }
+
+        var nextLocation = _map[nextRow, nextCol];
+        if (nextLocation == '#')
+        {
+            var nextChar = Turn90(currentChar);
+            _map[currentRow, currentCol] = nextChar;
+            nextRow = currentRow;
+            nextCol = currentCol;
+        }
+        else
+        {
+            _map[nextRow, nextCol] = currentChar;
+            _map[currentRow, currentCol] = 'X';
+        }
+
+
+        //Console.WriteLine("After:");
+        //PrintMap();
+        foreach (var direction in _movements)
+        {
+            if (_map[nextRow, nextCol] == direction.cursor)
+            {
+                MoveGuardWithLogging(nextRow, nextCol, direction);
+                break;
+            }
+        }
+    }
+
     private char Turn90(char currentChar)
     {
         var movementIndex = Array.FindIndex(_movements, m => m.cursor == currentChar);
@@ -104,9 +186,6 @@ public class Day6
         return _movements[newMovementIndex].cursor;
     }
 
-    public void Part2()
-    {
-    }
 
     public void PrintMap()
     {

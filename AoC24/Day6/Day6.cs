@@ -14,10 +14,12 @@ public class Day6
         ('<', (0, -1))
     ];
 
-    private const string FileName = "example.txt";
-    //private const string FileName = "input.txt";
+    //private const string FileName = "example.txt";
+    private const string FileName = "input.txt";
 
-    private List<char[,]> _maps = [];
+    private int _movesMade = 0;
+    private List<char[,]> maps = [];
+    private bool _breakLoop = false;
 
     public void Part1()
     {
@@ -31,7 +33,7 @@ public class Day6
                 {
                     if (_map[i, j] == direction.cursor)
                     {
-                        MoveGuard(i, j, direction);
+                        MoveGuard(_map, i, j, direction);
                         break;
                     }
                 }
@@ -39,7 +41,7 @@ public class Day6
         }
 
         Console.WriteLine("final:");
-        PrintMap();
+        PrintMap(_map);
         int count = 0;
         for (int i = 0; i < _rows; i++)
         {
@@ -57,7 +59,7 @@ public class Day6
     public void Part2()
     {
         ParseFile("Day6\\" + FileName);
-        _maps.Add(_map);
+
         for (var i = 0; i < _rows; i++)
         {
             for (var j = 0; j < _cols; j++)
@@ -68,35 +70,53 @@ public class Day6
                 if (curCar != '#' && curCar != '^')
                 {
                     newMap[i, j] = '#';
-                    _maps.Add(newMap);
+                    maps.Add(newMap);
                 }
             }
         }
 
-        for (var i = 0; i < _rows; i++)
+        var loopsFound = 0;
+        for (var index = 0; index < maps.Count; index++)
         {
-            for (var j = 0; j < _cols; j++)
+            var map = maps[index];
+            Console.WriteLine($"Map {index} of {maps.Count}");
+            _movesMade = 0;
+            for (var i = 0; i < _rows; i++)
             {
-                foreach (var direction in _movements)
+                for (var j = 0; j < _cols; j++)
                 {
-                    if (_map[i, j] == direction.cursor)
+                    foreach (var direction in _movements)
                     {
-                        MoveGuard(i, j, direction);
-                        break;
+                        if (map[i, j] == direction.cursor)
+                        {
+                            MoveGuard(map, i, j, direction);
+                            break;
+                        }
                     }
                 }
             }
+
+            if (_breakLoop)
+            {
+                _breakLoop = false;
+                loopsFound++;
+            }
         }
 
-        Console.WriteLine("final:");
-        PrintMap();
-        //Console.WriteLine($"Temporaly insertable objects: {_temporalyInsertedObjects.Count}");
+        Console.WriteLine($"Temporaly insertable objects: {loopsFound}");
     }
 
-    private void MoveGuard(int currentRow, int currentCol, (char cursor, (int row, int col) direction) movement)
+    private void MoveGuard(char[,] map, int currentRow, int currentCol, (char cursor, (int row, int col) direction) movement)
     {
         //Console.WriteLine("Before:");
         //PrintMap();
+        _movesMade++;
+        if (_movesMade == 7300 || _breakLoop)
+        {
+            _breakLoop = true;
+            return;
+        }
+
         var nextRow = currentRow + movement.direction.row;
         var nextCol = currentCol + movement.direction.col;
         if (nextRow >= _rows || nextRow < 0 || nextCol >= _cols || nextCol < 0)
@@ -105,69 +125,29 @@ public class Day6
         }
 
         var currentChar = movement.cursor;
-        var nextLocation = _map[nextRow, nextCol];
+        var nextLocation = map[nextRow, nextCol];
         if (nextLocation == '#')
         {
             var nextChar = Turn90(currentChar);
-            _map[currentRow, currentCol] = nextChar;
+            map[currentRow, currentCol] = nextChar;
             nextRow = currentRow;
             nextCol = currentCol;
         }
         else
         {
-            _map[nextRow, nextCol] = currentChar;
-            _map[currentRow, currentCol] = 'X';
+            map[nextRow, nextCol] = currentChar;
+            map[currentRow, currentCol] = 'X';
         }
 
-        
-        //Console.WriteLine("After:");
-        //PrintMap();
         foreach (var direction in _movements)
         {
-            if (_map[nextRow, nextCol] == direction.cursor)
+            if (map[nextRow, nextCol] != direction.cursor)
             {
-                MoveGuard(nextRow, nextCol, direction);
-                break;
+                continue;
             }
-        }
-    }
 
-    private void MoveGuardLoopy(int currentRow, int currentCol, (char cursor, (int row, int col) direction) movement)
-    {
-        //Console.WriteLine("Before:");
-        //PrintMap();
-        var nextRow = currentRow + movement.direction.row;
-        var nextCol = currentCol + movement.direction.col;
-        if (nextRow >= _rows || nextRow < 0 || nextCol >= _cols || nextCol < 0)
-        {
-            return;
-        }
-
-        var currentChar = movement.cursor;
-        var nextLocation = _map[nextRow, nextCol];
-        if (nextLocation == '#')
-        {
-            var nextChar = Turn90(currentChar);
-            _map[currentRow, currentCol] = nextChar;
-            nextRow = currentRow;
-            nextCol = currentCol;
-        }
-        else
-        {
-            _map[nextRow, nextCol] = currentChar;
-            _map[currentRow, currentCol] = 'X';
-        }
-
-
-        //Console.WriteLine("After:");
-        //PrintMap();
-        foreach (var direction in _movements)
-        {
-            if (_map[nextRow, nextCol] == direction.cursor)
-            {
-                MoveGuardLoopy(nextRow, nextCol, direction);
-                break;
-            }
+            MoveGuard(map, nextRow, nextCol, direction);
+            break;
         }
     }
 
@@ -184,23 +164,16 @@ public class Day6
         return _movements[newMovementIndex].cursor;
     }
 
-
-    public void PrintMap()
+    private void PrintMap(char[,] map)
     {
-        if (_map == null)
-        {
-            Console.WriteLine("Map is not initialized.");
-            return;
-        }
+        var rows = map.GetLength(0);
+        var columns = map.GetLength(1);
 
-        int rows = _map.GetLength(0);
-        int columns = _map.GetLength(1);
-
-        for (int i = 0; i < rows; i++)
+        for (var i = 0; i < rows; i++)
         {
-            for (int j = 0; j < columns; j++)
+            for (var j = 0; j < columns; j++)
             {
-                Console.Write(_map[i, j]);
+                Console.Write(map[i, j]);
             }
             Console.WriteLine(); // Move to the next line after each row
         }

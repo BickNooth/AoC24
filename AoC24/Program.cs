@@ -1,4 +1,4 @@
-﻿var part = new AoC24.Day6.Day6();
+﻿var part = new AoC24.Day7.Day7();
 //part.Part1();
 part.Part2();
 
